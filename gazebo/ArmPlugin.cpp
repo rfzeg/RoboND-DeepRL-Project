@@ -358,7 +358,18 @@ bool ArmPlugin::updateAgent()
 	/ TODO - Increase or decrease the joint position based on whether the action is even or odd
 	/
 	*/
+    // arbitrary rule to decide on how the action array translates to movement increase or decrease
+  
 	float joint = 0.0; // TODO - Set joint position based on whether action is even or odd.
+    if ( action % 2 == 0)
+        if(DEBUG){printf("action is even \n");}
+        joint = ref[action/2] + actionJointDelta;
+    else
+        if(DEBUG){printf("action is odd \n");}
+        joint = ref[action/2] - actionJointDelta;
+  
+    if(DEBUG){printf("Joint Position: %f\n", joint);}
+
 
 	// limit the joint to the specified range
 	if( joint < JOINT_MIN )
