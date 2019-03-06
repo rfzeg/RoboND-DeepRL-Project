@@ -135,8 +135,10 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 	
 	/*
 	/ TODO - Subscribe to camera topic
-	/
 	*/
+	gazebo::transport::SubscriberPtr sub = node->Subscribe("/gazebo/arm_world/camera/link/camera/image", &ArmPlugin::onCameraMsg, this);// topic_name, callback_function, class_instance
+
+	
 	
 	//cameraSub = None;
 
@@ -145,8 +147,8 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 		
 	/*
 	/ TODO - Subscribe to prop collision topic
-	/
 	*/
+	gazebo::transport::SubscriberPtr sub = node->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", &ArmPlugin::onCollisionMsg, this);
 	
 	//collisionSub = None;
 
