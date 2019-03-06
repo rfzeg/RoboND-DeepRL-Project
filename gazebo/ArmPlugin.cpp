@@ -49,8 +49,8 @@
 /
 */
 
-#define REWARD_WIN  0.0f
-#define REWARD_LOSS -0.0f
+#define REWARD_WIN  0.0f // value for positive rewards
+#define REWARD_LOSS -0.0f // value for negative rewards
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -267,7 +267,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		/
 		*/
 		
-		/*
+		
 		
 		if (collisionCheck)
 		{
@@ -278,7 +278,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 
 			return;
 		}
-		*/
+		
 		
 	}
 }
@@ -592,18 +592,19 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
 		*/
-		
-		
-		/*if(checkGroundContact)
+		bool checkGroundContact = (gripBBox.min.z <= groundContact) ? true : false;
+		// check if the gripper is hitting the ground or not using its bounding box attribute
+		if(checkGroundContact)
 		{
 						
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
 
-			rewardHistory = None;
-			newReward     = None;
-			endEpisode    = None;
+            // Reward for robot gripper hitting the ground
+			rewardHistory = REWARD_LOSS; // Value of the previous reward
+			newReward     = true;
+			endEpisode    = true;
 		}
-		*/
+		
 		
 		/*
 		/ TODO - Issue an interim reward based on the distance to the object
