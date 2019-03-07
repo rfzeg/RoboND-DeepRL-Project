@@ -51,6 +51,7 @@
 
 #define REWARD_WIN  0.0f // value for positive rewards
 #define REWARD_LOSS -0.0f // value for negative rewards
+#define ALPHA 0.5f // to compute the smoothed moving average distance to goal
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -611,10 +612,10 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		/
 		*/ 
 		
-		/*
+		
 		if(!checkGroundContact)
 		{
-			const float distGoal = 0; // compute the reward from distance to the goal
+			const float distGoal = BoxDistance(gripBBox, propBBox); // compute the distance between two bounding boxes
 
 			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
 
@@ -622,15 +623,30 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			if( episodeFrames > 1 )
 			{
 				const float distDelta  = lastGoalDistance - distGoal;
-
+				const float maxDistGoal = (maxDistGoal >= distGoal) ? maxDistGoal : distGoal; // get max distance to goal
 				// compute the smoothed moving average of the delta of the distance to the goal
-				avgGoalDelta  = 0.0;
-				rewardHistory = None;
-				newReward     = None;	
-			}
+				average_delta  = (average_delta * ALPHA) + (distDelta * (1 - ALPHA)); // recommended smoothed moving average formula
 
+				// Compute reward based on distance from goal
+				if (distGoal < lastGoalDistance){  // is closer to goal
+					if (distGoal > groundContact){   // has not reached goal
+						rewardHistory = REWARD_WIN * ((maxDistGoal - distGoal) / maxDistGoal); // the closer the higher the reward
+						newReward     = true;
+						endEpisode    = false;
+					}
+					else if (distGoal <= groundContact){  // has reached Goal
+						rewardHistory = REWARD_WIN;
+						newReward     = true;
+						endEpisode    = true;
+					}
+				}
+				else if (distGoal >= lastGoalDistance){ // is farther away from goal
+						rewardHistory = REWARD_LOSS;
+						newReward     = true;
+						endEpisode    = false;
+			}
 			lastGoalDistance = distGoal;
-		} */
+		} 
 	}
 
 	// issue rewards and train DQN
