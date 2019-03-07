@@ -68,6 +68,10 @@
 
 // Set Debug Mode
 #define DEBUG false
+// Set project GOAL
+#define GOAL 1
+// GOAL 1: Any part of the robot arm touches the can (at least 90% accuracy)
+// GOAL 2: The gripper base touches the can (at least 80% accuracy)
 
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
@@ -265,21 +269,39 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 	
 		/*
 		/ TODO - Check if there is collision between the arm and object, then issue learning reward
-		/
+		/ Task #6 Issue a reward based on collision between the arm and the object
+        / Task #8 Issue a reward based on collision between the arm’s gripper base and the object.
+        gripper: COLLISION_POINT
+        can: COLLISION_ITEM
 		*/
-		
-		
-		
-		if (collisionCheck)
-		{
-			rewardHistory = None;
+		if (GOAL == 1)  {
+		bool anyCollisionCheck = (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0); // check any collision with the can
+		if (anyCollisionCheck)
+			{
+				rewardHistory = REWARD_WIN;
 
-			newReward  = None;
-			endEpisode = None;
+				newReward  = true;
+				endEpisode = true;
 
-			return;
+				return;
+			}
 		}
-		
+		else if (GOAL == 2) {
+ 		bool gripperCollisionCheck = (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0); // check any collision with the gripper base
+		if (gripperCollisionCheck)
+			{
+				rewardHistory = REWARD_WIN;
+
+				newReward  = true;
+				endEpisode = true;
+
+				return;
+			}
+		}         
+		else
+			{
+			if(DEBUG){printf("No valid goal set. \n GOAL 1: Any part of the robot arm touches the can. \n GOAL 2: The gripper base touches the can. \n");}
+			{   
 		
 	}
 }
