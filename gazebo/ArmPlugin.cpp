@@ -38,7 +38,7 @@
 #define INPUT_WIDTH   512
 #define INPUT_HEIGHT  512
 #define OPTIMIZER "None"
-#define LEARNING_RATE 0.0f
+#define LEARNING_RATE 0.1f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 8
 #define USE_LSTM false
@@ -49,8 +49,8 @@
 /
 */
 
-#define REWARD_WIN  0.0f // value for positive rewards
-#define REWARD_LOSS -0.0f // value for negative rewards
+#define REWARD_WIN  1.0f // value for positive rewards
+#define REWARD_LOSS -1.0f // value for negative rewards
 #define ALPHA 0.5f // to compute the smoothed moving average distance to goal
 
 // Define Object Names
@@ -67,7 +67,7 @@
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG false
+#define DEBUG true
 // Set project GOAL
 #define GOAL 1
 // GOAL 1: Any part of the robot arm touches the can (at least 90% accuracy)
