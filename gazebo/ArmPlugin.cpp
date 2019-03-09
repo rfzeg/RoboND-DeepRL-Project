@@ -1,4 +1,4 @@
-/* 
+/*
  * Author - Dustin Franklin (Nvidia Jetson Developer)
  * Modified by - Sahil Juneja, Kyle Stewart-Frantz
  *
@@ -29,7 +29,7 @@
 #define EPS_START 0.9f
 #define EPS_END 0.05f
 #define EPS_DECAY 200
-
+#define NUM_ACTIONS 6
 /*
 / TODO - Tune the following hyperparameters
 /
@@ -79,7 +79,7 @@
 
 namespace gazebo
 {
- 
+
 // register this plugin with the simulator
 GZ_REGISTER_MODEL_PLUGIN(ArmPlugin)
 
@@ -127,7 +127,7 @@ ArmPlugin::ArmPlugin() : ModelPlugin(), cameraNode(new gazebo::transport::Node()
 
 
 // Load
-void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/) 
+void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 {
 	printf("ArmPlugin::Load('%s')\n", _parent->GetName().c_str());
 
@@ -137,24 +137,24 @@ void ArmPlugin::Load(physics::ModelPtr _parent, sdf::ElementPtr /*_sdf*/)
 
 	// Create our node for camera communication
 	cameraNode->Init();
-	
+
 	/*
 	/ TODO - Subscribe to camera topic
 	*/
-	gazebo::transport::SubscriberPtr sub = node->Subscribe("/gazebo/arm_world/camera/link/camera/image", &ArmPlugin::onCameraMsg, this);// topic_name, callback_function, class_instance
+	cameraSub = cameraNode->Subscribe("/gazebo/arm_world/camera/link/camera/image", &ArmPlugin::onCameraMsg, this);// topic_name, callback_function, class_instance
 
-	
-	
+
+
 	//cameraSub = None;
 
 	// Create our node for collision detection
 	collisionNode->Init();
-		
+
 	/*
 	/ TODO - Subscribe to prop collision topic
 	*/
-	gazebo::transport::SubscriberPtr sub = node->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", &ArmPlugin::onCollisionMsg, this);
-	
+	collisionSub = collisionNode->Subscribe("/gazebo/arm_world/tube/tube_link/my_contact", &ArmPlugin::onCollisionMsg, this);
+
 	//collisionSub = None;
 
 	// Listen to the update event. This event is broadcast every simulation iteration.
@@ -168,14 +168,14 @@ bool ArmPlugin::createAgent()
 	if( agent != NULL )
 		return true;
 
-			
+
 	/*
 	/ TODO - Create DQN Agent
 	*/
     // Create reinforcement learner agent in pyTorch using API
-    agent = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS, NUM_ACTIONS, OPTIMIZER, LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE, GAMMA, EPS_START, EPS_END, EPS_DECAY, USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN)
+    agent = dqnAgent::Create(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS, NUM_ACTIONS, OPTIMIZER, LEARNING_RATE, REPLAY_MEMORY, BATCH_SIZE, GAMMA, EPS_START, EPS_END, EPS_DECAY, USE_LSTM, LSTM_SIZE, ALLOW_RANDOM, DEBUG_DQN);
 
-  
+
 	//agent = NULL;
 
 	if( !agent )
@@ -185,7 +185,7 @@ bool ArmPlugin::createAgent()
 	}
 
 	// Allocate the python tensor for passing the camera state
-		
+
 	inputState = Tensor::Alloc(INPUT_WIDTH, INPUT_HEIGHT, INPUT_CHANNELS);
 
 	if( !inputState )
@@ -214,7 +214,7 @@ void ArmPlugin::onCameraMsg(ConstImageStampedPtr &_msg)
 	}
 
 	// retrieve image dimensions
-	
+
 	const int width  = _msg->image().width();
 	const int height = _msg->image().height();
 	const int bpp    = (_msg->image().step() / _msg->image().width()) * 8;	// bits per pixel
@@ -236,7 +236,7 @@ void ArmPlugin::onCameraMsg(ConstImageStampedPtr &_msg)
 		}
 
 		printf("ArmPlugin - allocated camera img buffer %ix%i  %i bpp  %i bytes\n", width, height, bpp, size);
-		
+
 		inputBufferSize = size;
 		inputRawWidth   = width;
 		inputRawHeight  = height;
@@ -266,7 +266,7 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 		if(DEBUG){std::cout << "Collision between[" << contacts->contact(i).collision1()
 			     << "] and [" << contacts->contact(i).collision2() << "]\n";}
 
-	
+
 		/*
 		/ TODO - Check if there is collision between the arm and object, then issue learning reward
 		/ Task #6 Issue a reward based on collision between the arm and the object
@@ -274,7 +274,8 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
         gripper: COLLISION_POINT
         can: COLLISION_ITEM
 		*/
-		if (GOAL == 1)  {
+		if (GOAL == 1)
+        {
 		bool anyCollisionCheck = (strcmp(contacts->contact(i).collision1().c_str(), COLLISION_ITEM) == 0); // check any collision with the can
 		if (anyCollisionCheck)
 			{
@@ -286,7 +287,8 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 				return;
 			}
 		}
-		else if (GOAL == 2) {
+		else if (GOAL == 2)
+        {
  		bool gripperCollisionCheck = (strcmp(contacts->contact(i).collision2().c_str(), COLLISION_POINT) == 0); // check any collision with the gripper base
 		if (gripperCollisionCheck)
 			{
@@ -297,12 +299,12 @@ void ArmPlugin::onCollisionMsg(ConstContactsPtr &contacts)
 
 				return;
 			}
-		}         
+		}
 		else
 			{
 			if(DEBUG){printf("No valid goal set. \n GOAL 1: Any part of the robot arm touches the can. \n GOAL 2: The gripper base touches the can. \n");}
-			{   
-		
+            }
+
 	}
 }
 
@@ -344,12 +346,12 @@ bool ArmPlugin::updateAgent()
 	// if the action is even, increase the joint position by the delta parameter
 	// if the action is odd,  decrease the joint position by the delta parameter
 
-		
+
 	/*
 	/ TODO - Increase or decrease the joint velocity based on whether the action is even or odd
 	/
 	*/
-	
+
 	float velocity = 0.0; // TODO - Set joint velocity based on whether action is even or odd.
 
 	if( velocity < VELOCITY_MIN )
@@ -359,7 +361,7 @@ bool ArmPlugin::updateAgent()
 		velocity = VELOCITY_MAX;
 
 	vel[action/2] = velocity;
-	
+
 	for( uint32_t n=0; n < DOF; n++ )
 	{
 		ref[n] += vel[n];
@@ -376,28 +378,32 @@ bool ArmPlugin::updateAgent()
 		}
 	}
 #else
-	
+
 	/*
 	/ TODO - Increase or decrease the joint position based on whether the action is even or odd
 	/
 	*/
     // arbitrary rule to decide on how the action array translates to movement increase or decrease
-  
+
 	float joint = 0.0; // TODO - Set joint position based on whether action is even or odd.
     if ( action % 2 == 0)
+    {
         if(DEBUG){printf("action is even \n");}
         joint = ref[action/2] + actionJointDelta;
+    }
     else
+    {
         if(DEBUG){printf("action is odd \n");}
         joint = ref[action/2] - actionJointDelta;
-  
+    }
+
     if(DEBUG){printf("Joint Position: %f\n", joint);}
 
 
 	// limit the joint to the specified range
 	if( joint < JOINT_MIN )
 		joint = JOINT_MIN;
-	
+
 	if( joint > JOINT_MAX )
 		joint = JOINT_MAX;
 
@@ -427,7 +433,7 @@ bool ArmPlugin::updateJoints()
 				ref[n] = JOINT_MIN + step * float(animationStep);
 		}
 		else if( animationStep < ANIMATION_STEPS * 2 )
-		{			
+		{
 			animationStep++;
 			printf("animation step %u\n", animationStep);
 
@@ -444,7 +450,7 @@ bool ArmPlugin::updateJoints()
 		// return to base position
 		for( uint32_t n=0; n < DOF; n++ )
 		{
-			
+
 			if( ref[n] < resetPos[n] )
 				ref[n] += step;
 			else if( ref[n] > resetPos[n] )
@@ -454,7 +460,7 @@ bool ArmPlugin::updateJoints()
 				ref[n] = JOINT_MIN;
 			else if( ref[n] > JOINT_MAX )
 				ref[n] = JOINT_MAX;
-			
+
 		}
 
 		animationStep++;
@@ -464,12 +470,12 @@ bool ArmPlugin::updateJoints()
 		if( animationStep > ANIMATION_STEPS )
 		{
 			animationStep = 0;
-			
+
 			if( !loopAnimation )
 				testAnimation = false;
 		}
 		else if( animationStep == ANIMATION_STEPS / 2 )
-		{	
+		{
 			ResetPropDynamics();
 		}
 
@@ -538,7 +544,7 @@ static float BoxDistance(const math::Box& a, const math::Box& b)
 		float d = b.min.z - a.max.z;
 		sqrDist += d * d;
 	}
-	
+
 	return sqrtf(sqrDist);
 }
 
@@ -571,7 +577,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		j2_controller->SetJointPosition(this->model->GetJoint("joint2"),  ref[1]);
 
 #else
-		j2_controller->SetJointPosition(this->model->GetJoint("base"), 	 ref[0]); 
+		j2_controller->SetJointPosition(this->model->GetJoint("base"), 	 ref[0]);
 		j2_controller->SetJointPosition(this->model->GetJoint("joint1"),  ref[1]);
 		j2_controller->SetJointPosition(this->model->GetJoint("joint2"),  ref[2]);
 #endif
@@ -607,10 +613,10 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			return;
 		}
 
-		// get the bounding box for the gripper		
+		// get the bounding box for the gripper
 		const math::Box& gripBBox = gripper->GetBoundingBox();
 		const float groundContact = 0.05f;
-		
+
 		/*
 		/ TODO - set appropriate Reward for robot hitting the ground.
 		/
@@ -619,7 +625,7 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 		// check if the gripper is hitting the ground or not using its bounding box attribute
 		if(checkGroundContact)
 		{
-						
+
 			if(DEBUG){printf("GROUND CONTACT, EOE\n");}
 
             // Reward for robot gripper hitting the ground
@@ -627,48 +633,53 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 			newReward     = true;
 			endEpisode    = true;
 		}
-		
-		
+
+
 		/*
 		/ TODO - Issue an interim reward based on the distance to the object
 		/
-		*/ 
-		
-		
+		*/
+
+
 		if(!checkGroundContact)
 		{
 			const float distGoal = BoxDistance(gripBBox, propBBox); // compute the distance between two bounding boxes
 
 			if(DEBUG){printf("distance('%s', '%s') = %f\n", gripper->GetName().c_str(), prop->model->GetName().c_str(), distGoal);}
 
-			
+
 			if( episodeFrames > 1 )
 			{
 				const float distDelta  = lastGoalDistance - distGoal;
 				const float maxDistGoal = (maxDistGoal >= distGoal) ? maxDistGoal : distGoal; // get max distance to goal
 				// compute the smoothed moving average of the delta of the distance to the goal
-				average_delta  = (average_delta * ALPHA) + (distDelta * (1 - ALPHA)); // recommended smoothed moving average formula
+				avgGoalDelta  = (avgGoalDelta * ALPHA) + (distDelta * (1 - ALPHA)); // recommended smoothed moving average formula
 
 				// Compute reward based on distance from goal
-				if (distGoal < lastGoalDistance){  // is closer to goal
-					if (distGoal > groundContact){   // has not reached goal
+				if (distGoal < lastGoalDistance)
+                {  // is closer to goal
+					if (distGoal > groundContact)
+                    {   // has not reached goal
 						rewardHistory = REWARD_WIN * ((maxDistGoal - distGoal) / maxDistGoal); // the closer the higher the reward
 						newReward     = true;
 						endEpisode    = false;
 					}
-					else if (distGoal <= groundContact){  // has reached Goal
+					else if (distGoal <= groundContact)
+                    {  // has reached Goal
 						rewardHistory = REWARD_WIN;
 						newReward     = true;
 						endEpisode    = true;
 					}
 				}
-				else if (distGoal >= lastGoalDistance){ // is farther away from goal
+				else if (distGoal >= lastGoalDistance)
+                { // is farther away from goal
 						rewardHistory = REWARD_LOSS;
 						newReward     = true;
 						endEpisode    = false;
+                }
 			}
 			lastGoalDistance = distGoal;
-		} 
+		}
 	}
 
 	// issue rewards and train DQN
@@ -705,4 +716,3 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 }
 
 }
-
