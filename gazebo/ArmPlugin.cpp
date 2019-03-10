@@ -35,14 +35,14 @@
 /
 */
 
-#define INPUT_WIDTH   512
-#define INPUT_HEIGHT  512
-#define OPTIMIZER "None"
-#define LEARNING_RATE 0.1f
+#define INPUT_WIDTH   64 // initial value: 512
+#define INPUT_HEIGHT  64 // initial value: 512
+#define OPTIMIZER "RMSprop"	// RMSprop, Adam, AdaGrad, None
+#define LEARNING_RATE 0.15f // initial value: 0.0f
 #define REPLAY_MEMORY 10000
-#define BATCH_SIZE 8
-#define USE_LSTM false
-#define LSTM_SIZE 32
+#define BATCH_SIZE 64 // initial value: 8
+#define USE_LSTM true // initial value: false
+#define LSTM_SIZE 256 // initial value: 32
 
 /*
 / TODO - Define Reward Parameters
@@ -51,7 +51,7 @@
 
 #define REWARD_WIN  1.0f // value for positive rewards
 #define REWARD_LOSS -1.0f // value for negative rewards
-#define ALPHA 0.5f // to compute the smoothed moving average distance to goal
+#define ALPHA 0.25f // to compute the smoothed moving average distance to goal
 
 // Define Object Names
 #define WORLD_NAME "arm_world"
@@ -67,9 +67,9 @@
 #define ANIMATION_STEPS 1000
 
 // Set Debug Mode
-#define DEBUG true
+#define DEBUG false // set to false to view current accuracy
 // Set project GOAL
-#define GOAL 1
+#define GOAL 2
 // GOAL 1: Any part of the robot arm touches the can (at least 90% accuracy)
 // GOAL 2: The gripper base touches the can (at least 80% accuracy)
 
