@@ -26,19 +26,19 @@
 #define ALLOW_RANDOM true
 #define DEBUG_DQN false
 #define GAMMA 0.9f
-#define EPS_START 0.9f
-#define EPS_END 0.05f
-#define EPS_DECAY 200
+#define EPS_START 0.9f // epsilon_start of random actions
+#define EPS_END 0.01f // epsilon_end of random actions, initial value: 0.5f, reduce to keep it from continuing to explore too much once a solution is found
+#define EPS_DECAY 15 // exponential decay of random actions, initial value: 200
 #define NUM_ACTIONS 6
 /*
 / TODO - Tune the following hyperparameters
 /
 */
 
-#define INPUT_WIDTH   64 // initial value: 512
-#define INPUT_HEIGHT  64 // initial value: 512
+#define INPUT_WIDTH   128 // initial value: 512
+#define INPUT_HEIGHT  128 // initial value: 512
 #define OPTIMIZER "RMSprop"	// RMSprop, Adam, AdaGrad, None
-#define LEARNING_RATE 0.15f // initial value: 0.0f
+#define LEARNING_RATE 0.2f // initial value: 0.0f
 #define REPLAY_MEMORY 10000
 #define BATCH_SIZE 64 // initial value: 8
 #define USE_LSTM true // initial value: false
@@ -49,7 +49,7 @@
 /
 */
 
-#define REWARD_WIN  1.0f // value for positive rewards
+#define REWARD_WIN  2.0f // value for positive rewards
 #define REWARD_LOSS -1.0f // value for negative rewards
 #define ALPHA 0.25f // to compute the smoothed moving average distance to goal
 
@@ -76,6 +76,7 @@
 // Lock base rotation DOF (Add dof in header file if off)
 #define LOCKBASE true
 
+// float maxDistGoal = 0.0f;  // max distance to goal
 
 namespace gazebo
 {
@@ -120,7 +121,7 @@ ArmPlugin::ArmPlugin() : ModelPlugin(), cameraNode(new gazebo::transport::Node()
 	loopAnimation    = false;
 	animationStep    = 0;
 	lastGoalDistance = 0.0f;
-	avgGoalDelta     = 0.0f;
+	avgGoalDelta     = 0.0f; // max distance to goal
 	successfulGrabs = 0;
 	totalRuns       = 0;
 }
@@ -653,8 +654,12 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				const float distDelta  = lastGoalDistance - distGoal;
 				const float maxDistGoal = (maxDistGoal >= distGoal) ? maxDistGoal : distGoal; // get max distance to goal
 				// compute the smoothed moving average of the delta of the distance to the goal
-				avgGoalDelta  = (avgGoalDelta * ALPHA) + (distDelta * (1 - ALPHA)); // recommended smoothed moving average formula
-
+				// avgGoalDelta  = (avgGoalDelta * ALPHA) + (distDelta * (1 - ALPHA)); // recommended smoothed moving average formula
+                
+		        // check if the gripper is overshooting the can or not using its bounding box attribute
+                // bool checkOvershoot = (gripBBox.max.x >= propBBox.max.x) ? true : false; // in Gazebo the red marker represents the X axis
+                // rewardHistory = (checkOvershoot) ? REWARD_LOSS*0.5 : 0;
+                // newReward     = true;
 				// Compute reward based on distance from goal
 				if (distGoal < lastGoalDistance)
                 {  // is closer to goal
