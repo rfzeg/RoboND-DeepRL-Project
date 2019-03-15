@@ -386,7 +386,8 @@ bool ArmPlugin::updateAgent()
 	*/
     // arbitrary rule to decide on how the action array translates to movement increase or decrease
 
-	float joint = 0.0; // TODO - Set joint position based on whether action is even or odd.
+  // Set joint position based on whether action is even or odd	
+  float joint = 0.0; 
     if ( action % 2 == 0)
     {
         if(DEBUG){printf("action is even \n");}
@@ -663,18 +664,18 @@ void ArmPlugin::OnUpdate(const common::UpdateInfo& updateInfo)
 				// Compute reward based on distance from goal
 				if (distGoal < lastGoalDistance)
                 {  // is closer to goal
-					if (distGoal > groundContact)
-                    {   // has not reached goal
+					// if (distGoal > groundContact)
+                    // {   // has not reached goal
 						rewardHistory = REWARD_WIN * ((maxDistGoal - distGoal) / maxDistGoal); // the closer the higher the reward
 						newReward     = true;
 						endEpisode    = false;
-					}
-					else if (distGoal <= groundContact)
-                    {  // has reached Goal
-						rewardHistory = REWARD_WIN;
-						newReward     = true;
-						endEpisode    = true;
-					}
+					// }
+					// else if (distGoal <= groundContact)
+                    // {  // has reached Goal
+					// 	rewardHistory = REWARD_WIN;
+					// 	newReward     = true;
+					//	endEpisode    = true;
+					// }
 				}
 				else if (distGoal >= lastGoalDistance)
                 { // is farther away from goal
